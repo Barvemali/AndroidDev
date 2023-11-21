@@ -10,25 +10,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.barvemali.androiddev.AppNavigation
-import com.barvemali.androiddev.MainActivity
 import com.barvemali.androiddev.R
 import com.barvemali.androiddev.ui.theme.Pink100
 import com.barvemali.androiddev.ui.theme.medium
@@ -71,6 +74,42 @@ fun LeafImage(){
         contentDescription = "welcome_illos",
         modifier = Modifier.wrapContentSize()
     )
+}
+
+@Composable
+fun ByteImage(byteArray: ByteArray) {
+    var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    DisposableEffect(byteArray) {
+        // 在DisposableEffect中加载字节数组并将其转换为Bitmap
+        imageBitmap = byteArray.toBitmap()
+
+        onDispose {
+            // 在Composable被丢弃时释放资源
+            imageBitmap = null
+        }
+    }
+
+    // 显示图片
+    imageBitmap?.let {
+        Image(
+            bitmap = it,
+            contentDescription = null, // 可以添加图像的描述信息
+            modifier = Modifier
+                .size(200.dp, 200.dp), // 根据您的需求设置大小
+            contentScale = ContentScale.Crop
+        )
+    }
+}
+
+private fun ByteArray.toBitmap(): ImageBitmap? {
+    return try {
+        // 假设字节数组包含图片数据，这里使用BitmapFactory来解码字节数组为Bitmap
+        val bitmap = android.graphics.BitmapFactory.decodeByteArray(this, 0, size)
+        bitmap.asImageBitmap()
+    } catch (e: Exception) {
+        null
+    }
 }
 
 @Composable

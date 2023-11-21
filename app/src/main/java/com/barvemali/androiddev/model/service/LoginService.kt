@@ -1,6 +1,5 @@
 package com.barvemali.androiddev.model.service
 
-import android.annotation.SuppressLint
 import android.util.Log
 import com.barvemali.androiddev.model.entity.Student
 import com.squareup.moshi.Moshi

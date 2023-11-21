@@ -3,12 +3,9 @@ package com.barvemali.androiddev.ui
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Build
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,13 +18,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Colors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Menu
@@ -52,6 +49,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,9 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
@@ -100,7 +96,7 @@ private val items = listOf(
     Screen.Profile
 )
 private val applyController = ApplyController()
-private val courseController = CourseController()
+val courseController = CourseController()
 private val teacherController = TeacherController()
 
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -133,7 +129,7 @@ fun Homepage(mainController: NavController, name: String?, id: String?){
                     )
                 }
             }
-        },
+        }
     ) {innerPadding ->
         NavHost(navController = navController, startDestination = Screen.Course.route, Modifier.padding(innerPadding)){
             composable(Screen.Course.route){
@@ -151,6 +147,7 @@ fun Homepage(mainController: NavController, name: String?, id: String?){
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
 fun HomeScreen(userid: Int){
+    val courses = remember { mutableStateOf(courseController.getAllCourse()) }
     Column {
         Column(
             Modifier
@@ -158,24 +155,26 @@ fun HomeScreen(userid: Int){
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(20.dp))
-            SearchBar()
-            BloomInfoList(userid)
+            SearchBar(courses)
+            BloomInfoList(userid, courses.value)
         }
     }
 }
 
 @Composable
-fun SearchBar(){
+fun SearchBar(courses: MutableState<List<Course>>){
     var text by rememberSaveable { mutableStateOf("") }
     Box {
         TextField(
             value = text,
-            onValueChange = { text = it },
+            onValueChange = {
+                text = it
+                courses.value = courseController.search(text)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .border(BorderStroke(1.dp, Color.Black)),
+                .clip(RoundedCornerShape(4.dp)),
             leadingIcon = {
                 Icon(Icons.Filled.Search, "search",
                     modifier = Modifier.size(18.dp)
@@ -262,8 +261,7 @@ fun Course(course: Course, userid: Int){
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
-fun BloomInfoList(userid: Int){
-    val courses = CourseController().getAllCourse()
+fun BloomInfoList(userid: Int, courses: List<Course>){
     Column {
         Row(
             Modifier.fillMaxWidth(),
@@ -395,6 +393,7 @@ fun ProfileScreen(historyController: NavController, navController: NavController
                 }
             }
         }
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -450,9 +449,9 @@ fun ProfileScreen(historyController: NavController, navController: NavController
 
 @Composable
 fun History(id: Int, currentStudent: String?){
-    var historyApplies by remember { mutableStateOf(ApplyController().getApplies()) }
+    val historyApplies = remember { mutableStateOf(applyController.getApplies()) }
     var text by rememberSaveable { mutableStateOf("") }
-    var mode by rememberSaveable { mutableStateOf("") }
+    var mode by rememberSaveable { mutableStateOf(1) }
     var expanded by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
@@ -484,12 +483,10 @@ fun History(id: Int, currentStudent: String?){
                     },
                     keyboardActions = KeyboardActions(
                         onSearch = {
-                            Log.d("mode", mode)
-                            Log.d("text", text)
                             if (currentStudent != null){
                                 when(mode){
-                                    "course" -> historyApplies = applyController.studentSearchByCourse(id, text)
-                                    "teacher" -> historyApplies = applyController.searchByPerson(text, currentStudent)
+                                    1 -> historyApplies.value = applyController.studentSearchByCourse(text)
+                                    2 -> historyApplies.value = applyController.searchByPerson(text, currentStudent)
                                 }
                             }
                         }
@@ -506,18 +503,18 @@ fun History(id: Int, currentStudent: String?){
                         modifier = Modifier.align(Alignment.BottomEnd)
                     ) {
                         DropdownMenuItem(text = { Text(text = "按课程名称搜索")} , onClick = {
-                            mode = "course"
+                            mode = 1
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(text = "按教师名称搜索") }, onClick = {
-                            mode = "teacher"
+                            mode = 2
                             expanded = false
                         })
                     }
                 }
             }
         }
-        historyApplies.forEach{
+        historyApplies.value.forEach{
             if (it.studentid == id && it.isfinish){
                 HistoricalCourse(it)
             }
@@ -529,7 +526,7 @@ fun History(id: Int, currentStudent: String?){
 @Composable
 fun HistoricalCourse(apply: Apply){
 
-    val course = CourseController().getCourse(apply.courseid)
+    val course = courseController.getCourse(apply.courseid)
     val openDialog = remember { mutableStateOf(false) }
 
     Card(

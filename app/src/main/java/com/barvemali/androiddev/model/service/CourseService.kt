@@ -14,7 +14,7 @@ import okhttp3.Response
 import java.io.IOException
 
 class CourseService {
-    suspend fun courseConnect(): List<Course>{
+    fun courseConnect(): List<Course>{
             val url = "http://10.0.2.2:8080/course/list"
             val request = Request.Builder()
                 .url(url)

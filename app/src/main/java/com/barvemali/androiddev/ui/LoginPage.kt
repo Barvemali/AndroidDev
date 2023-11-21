@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +37,7 @@ import com.barvemali.androiddev.controller.getCurrentStudentProfile
 import com.barvemali.androiddev.controller.loginController
 import com.barvemali.androiddev.controller.teacherLoginController
 import com.barvemali.androiddev.ui.theme.medium
+import kotlinx.coroutines.launch
 
 @Preview
 @Composable
@@ -74,27 +76,29 @@ fun LoginPage(navController: NavController = rememberNavController()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginButton(username : String, password : String, navController: NavController){
-
+    val composableScope = rememberCoroutineScope()
     val openDialog = remember { mutableStateOf(false) }
 
         Button(
             onClick = {
-                if (loginController(username, password)){
-                    val currentStudent = getCurrentStudentProfile()
-                    navController.navigate("home/" + currentStudent.sname + "/" + username){
-                        popUpTo("welcome"){
-                            inclusive = true
+                composableScope.launch {
+                    if (loginController(username, password)){
+                        val currentStudent = getCurrentStudentProfile()
+                        navController.navigate("home/" + currentStudent.sname + "/" + username){
+                            popUpTo("welcome"){
+                                inclusive = true
+                            }
                         }
-                    }
-                } else if (teacherLoginController(username, password)){
-                    val currentTeacher = TeacherController().findTeacherById(username.toInt())
-                    navController.navigate("teacher/" + currentTeacher.tname + "/" + username){
-                        popUpTo("home"){
-                            inclusive = true
+                    } else if (teacherLoginController(username, password)){
+                        val currentTeacher = TeacherController().findTeacherById(username.toInt())
+                        navController.navigate("teacher/" + currentTeacher.tname + "/" + username){
+                            popUpTo("home"){
+                                inclusive = true
+                            }
                         }
+                    } else {
+                        openDialog.value = true
                     }
-                } else {
-                    openDialog.value = true
                 }
             },
             modifier = Modifier

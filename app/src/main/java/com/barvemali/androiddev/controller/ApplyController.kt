@@ -47,7 +47,7 @@ class ApplyController {
         service.confirm(id)
     }
 
-    fun studentSearchByCourse(id: Int, course: String): List<Apply> = service.studentSearchByCourse(id, course)
+    fun studentSearchByCourse(course: String): List<Apply> = service.studentSearchByCourse(course)
 
     fun teacherSearchByCourse(id: Int, course: String): List<Apply> = service.teacherSearchByCourse(id, course)
 

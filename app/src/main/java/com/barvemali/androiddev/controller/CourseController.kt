@@ -8,19 +8,29 @@ import kotlinx.coroutines.runBlocking
 
 class CourseController {
     val service = CourseService()
+    var courses : List<Course> = emptyList()
 
     fun getAllCourse(): List<Course> = runBlocking{
-        lateinit var courses: List<Course>
-
-        val job = launch( Dispatchers.IO ){
-            courses = service.courseConnect()
+        if (courses.isEmpty()){
+            val job = launch( Dispatchers.IO ){
+                courses = service.courseConnect()
+            }
+            job.join()
         }
-        job.join()
-
         courses
     }
 
     fun getCourse(id: String): Course{
         return service.findCourseById(id)
+    }
+
+    fun search(name: String): List<Course> {
+        val result: ArrayList<Course> = ArrayList()
+        for (course in courses){
+            if (course.cname.contains(name)){
+                result.add(course)
+            }
+        }
+        return result
     }
 }
