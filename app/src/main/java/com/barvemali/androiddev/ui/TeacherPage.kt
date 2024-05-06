@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -178,7 +179,7 @@ fun Request(apply: Apply, level: Int, refreshA: () -> Unit, refreshB:() -> Unit)
         }
     }
     if (openDialog.value){
-        AlertDialog(
+        BasicAlertDialog(
             onDismissRequest = { openDialog.value = false },
             properties = DialogProperties(
                 dismissOnBackPress = true,
@@ -197,25 +198,26 @@ fun Request(apply: Apply, level: Int, refreshA: () -> Unit, refreshB:() -> Unit)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = checkedState.value,
-                            onCheckedChange = {checkedState.value = it}
+                            onCheckedChange = { checkedState.value = it }
                         )
                         Text(text = "审核通过")
                     }
                     TextField(
                         value = text,
                         onValueChange = { text = it },
-                        label = { Text(text = "原因")}
+                        label = { Text(text = "原因") }
                     )
                     Button(
                         onClick = {
                             when (checkedState.value) {
-                                true -> when (level){
-                                    1 -> ApplyController().teacherPass(apply.id, true, text)
-                                    2 -> ApplyController().managerPass(apply.id, true, text)
+                                true -> when (level) {
+                                    1 -> apply.id?.let { ApplyController().teacherPass(it, true, text) }
+                                    2 -> apply.id?.let { ApplyController().managerPass(it, true, text) }
                                 }
-                                false -> when (level){
-                                    1 -> ApplyController().teacherPass(apply.id, false, text)
-                                    2 -> ApplyController().managerPass(apply.id, false, text)
+
+                                false -> when (level) {
+                                    1 -> apply.id?.let { ApplyController().teacherPass(it, false, text) }
+                                    2 -> apply.id?.let { ApplyController().managerPass(it, false, text) }
                                 }
                             }
                             openDialog.value = false
@@ -284,7 +286,7 @@ fun TeacherProfileScreen(historyController: NavController, navController: NavCon
         }
     }
     if (openDialog.value){
-        AlertDialog(
+        BasicAlertDialog(
             onDismissRequest = { openDialog.value = false },
             properties = DialogProperties(
                 dismissOnBackPress = true,
@@ -306,8 +308,8 @@ fun TeacherProfileScreen(historyController: NavController, navController: NavCon
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(onClick = {
                             openDialog.value = false
-                            navController.navigate("welcome"){
-                                popUpTo("teacher/{name}/{id}"){ inclusive = true }
+                            navController.navigate("welcome") {
+                                popUpTo("teacher/{name}/{id}") { inclusive = true }
                             }
                         }) {
                             Text(text = "确定")
@@ -429,7 +431,7 @@ fun HistoricalApproval(apply: Apply){
     }
 
     if (openDialog.value){
-        AlertDialog(
+        BasicAlertDialog(
             onDismissRequest = { openDialog.value = false },
             properties = DialogProperties(
                 dismissOnBackPress = true,
@@ -451,17 +453,21 @@ fun HistoricalApproval(apply: Apply){
                     Text(text = "原因", style = MaterialTheme.typography.titleLarge)
                     Text(text = apply.reason)
                     Text(text = "主讲教师意见", style = MaterialTheme.typography.titleLarge)
-                    Text(text = when(apply.isteacherpass){
-                        true -> "同意"
-                        false -> "驳回"
-                        else -> ""
-                    })
+                    Text(
+                        text = when (apply.isteacherpass) {
+                            true -> "同意"
+                            false -> "驳回"
+                            else -> ""
+                        }
+                    )
                     Text(text = "主管教师意见", style = MaterialTheme.typography.titleLarge)
-                    Text(text = when(apply.isteacherpass){
-                        true -> "同意"
-                        false -> "驳回"
-                        else -> ""
-                    })
+                    Text(
+                        text = when (apply.isteacherpass) {
+                            true -> "同意"
+                            false -> "驳回"
+                            else -> ""
+                        }
+                    )
                 }
             }
         }

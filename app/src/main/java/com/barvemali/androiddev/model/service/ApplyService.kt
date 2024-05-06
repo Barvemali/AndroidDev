@@ -1,7 +1,8 @@
 package com.barvemali.androiddev.model.service
 
 import android.util.Log
-import com.barvemali.androiddev.controller.CourseController
+import com.barvemali.androiddev.model.adaptor.ApplyJson
+import com.barvemali.androiddev.model.adaptor.ApplyJsonAdaptor
 import com.barvemali.androiddev.model.entity.Apply
 import com.barvemali.androiddev.ui.courseController
 import com.squareup.moshi.Moshi
@@ -10,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -24,9 +26,12 @@ import java.io.IOException
 class ApplyService {
     val JSON = "application/json; charset=utf-8".toMediaType()
     val client = OkHttpClient()
-    var applies : List<Apply> = emptyList()
+    var applies: List<Apply> = emptyList()
+    val adaptor = ApplyJsonAdaptor()
 
-    fun findApplies(): List<Apply> {
+    fun findApplies(): List<Apply>
+    {
+        val applyJsons : List<ApplyJson>
         var string = ""
         runBlocking {
             val url = "http://10.0.2.2:8080/apply/list"
@@ -49,11 +54,17 @@ class ApplyService {
         while(string == ""){
             continue
         }
-        val moshi = Moshi.Builder().build()
-        val parameterizedType = Types.newParameterizedType(List::class.java, Apply::class.java)
-        val adapter = moshi.adapter<List<Apply>>(parameterizedType)
-        applies = adapter.fromJson(string)!!
-        return applies
+//        val moshi = Moshi.Builder().add(ApplyJsonAdaptor()).build()
+//        val parameterizedType = Types.newParameterizedType(List::class.java, Apply::class.java)
+//        val adapter = moshi.adapter<List<Apply>>(parameterizedType)
+//        applies = adapter.fromJson(string)!!
+        applyJsons = Json.decodeFromString(string)
+        var result: List<Apply> = emptyList()
+        for (json in applyJsons){
+            result = result.plus(adaptor.fromJson(json))
+        }
+        applies = result
+        return result
     }
 
     fun post(json: String) {
@@ -122,7 +133,7 @@ class ApplyService {
 
     fun studentSearchByCourse(courseName: String): List<Apply>{
         val result: ArrayList<Apply> = ArrayList()
-        val courses = courseController.search(courseName)
+        val courses = courseController.searchByCourseName(courseName)
         val courseId : ArrayList<String> = ArrayList()
         for (course in courses){
             courseId.add(course.id)

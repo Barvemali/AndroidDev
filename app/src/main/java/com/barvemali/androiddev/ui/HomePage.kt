@@ -1,8 +1,10 @@
 package com.barvemali.androiddev.ui
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -18,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,8 +31,8 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -61,9 +62,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -77,8 +80,10 @@ import com.barvemali.androiddev.controller.TeacherController
 import com.barvemali.androiddev.model.entity.Apply
 import com.barvemali.androiddev.model.entity.Course
 import com.barvemali.androiddev.ui.theme.h1
+import com.barvemali.androiddev.utils.getFileFromUri
+import com.barvemali.androiddev.utils.getFilePathFromUri
 import kotlinx.coroutines.launch
-import java.io.File
+import kotlinx.coroutines.runBlocking
 
 sealed class Screen(
     val route: String,
@@ -99,7 +104,7 @@ private val applyController = ApplyController()
 val courseController = CourseController()
 private val teacherController = TeacherController()
 
-@RequiresApi(Build.VERSION_CODES.Q)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
 @Composable
 fun Homepage(mainController: NavController, name: String?, id: String?){
@@ -144,7 +149,7 @@ fun Homepage(mainController: NavController, name: String?, id: String?){
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.Q)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun HomeScreen(userid: Int){
     val courses = remember { mutableStateOf(courseController.getAllCourse()) }
@@ -169,7 +174,7 @@ fun SearchBar(courses: MutableState<List<Course>>){
             value = text,
             onValueChange = {
                 text = it
-                courses.value = courseController.search(text)
+                courses.value = courseController.searchByCourseName(text)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -190,21 +195,27 @@ fun SearchBar(courses: MutableState<List<Course>>){
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.Q)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Course(course: Course, userid: Int){
+    val context = LocalContext.current
     val openDialog = remember { mutableStateOf(false) }
     var reason by remember { mutableStateOf("") }
-    val teacher = TeacherController().findTeacherById(course.teacher)
-    var uri by remember { mutableStateOf<Uri?>(null) }
+    val teacher = runBlocking { teacherController.findTeacherById(course.teacher) }
+    var result by remember { mutableStateOf<Uri?>(null) }
+    var filename by remember { mutableStateOf("") }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()){
-        uri = it
+        result = it
+        filename = getFilePathFromUri(context, it).toString()
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { openDialog.value = true }
+        onClick = {
+            openDialog.value = true
+            actionStartActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }
     ) {
         Box(
             modifier = Modifier
@@ -219,7 +230,7 @@ fun Course(course: Course, userid: Int){
     }
 
     if (openDialog.value){
-        AlertDialog(
+        BasicAlertDialog(
             onDismissRequest = { openDialog.value = false },
             properties = DialogProperties(
                 dismissOnBackPress = true,
@@ -245,11 +256,26 @@ fun Course(course: Course, userid: Int){
                         }) {
                         Text(text = "选择证明材料")
                     }
+                    if (filename != "") {
+                        Text(text = filename)
+                    }
                     Button(
                         onClick = {
-                            val file = uri?.path?.let { File(it) }
+                            val file = getFileFromUri(context, result)
                             openDialog.value = false
-                            applyController.createApply(Apply(applyController.getMaxId()+1, course.id, userid, reason, null, null, null, false, "", ""))
+                            applyController.createApply(
+                                Apply(
+                                    null,
+                                    course.id,
+                                    userid,
+                                    reason,
+                                    null,
+                                    null,
+                                    false,
+                                    "",
+                                    "", file
+                                )
+                            )
                         }) {
                         Text(text = "确定")
                     }
@@ -259,7 +285,7 @@ fun Course(course: Course, userid: Int){
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.Q)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun BloomInfoList(userid: Int, courses: List<Course>){
     Column {
@@ -325,21 +351,27 @@ fun ProcessingCourse(apply: Apply, refreshA: () -> Unit, refreshB: () -> Unit){
             Row {
                 Column {
                     Text(text = course.cname, style = MaterialTheme.typography.headlineSmall)
-                    Text(text = teacherController.findTeacherById(course.teacher).tname)
+                    Text(text = runBlocking { teacherController.findTeacherById(course.teacher).tname } )
                     if (apply.isteacherpass == null){
-                        LinearProgressIndicator(progress = 1f/3f)
+                        LinearProgressIndicator(
+                            progress = { 1f/3f },
+                        )
                         Text(text = "主讲教师审核中")
                     } else if (apply.ismanagerpass == null){
-                        LinearProgressIndicator(progress = 2f/3f)
+                        LinearProgressIndicator(
+                            progress = { 2f/3f },
+                        )
                         Text(text = "主管教师审核中")
                     } else {
-                        LinearProgressIndicator(progress = 1f)
+                        LinearProgressIndicator(
+                            progress = { 1f },
+                        )
                         Text(text = "审批完成")
                     }
                 }
                 if((apply.isteacherpass == true && apply.ismanagerpass == true)|| apply.isteacherpass == false || apply.ismanagerpass == false){
                     Button(onClick = {
-                        applyController.confirm(apply.id)
+                        apply.id?.let { applyController.confirm(it) }
                         refreshA()
                         refreshB()
                     }) {
@@ -407,7 +439,7 @@ fun ProfileScreen(historyController: NavController, navController: NavController
         }
     }
     if (openDialog.value){
-        AlertDialog(
+        BasicAlertDialog(
             onDismissRequest = { openDialog.value = false },
             properties = DialogProperties(
                 dismissOnBackPress = true,
@@ -429,8 +461,8 @@ fun ProfileScreen(historyController: NavController, navController: NavController
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(onClick = {
                             openDialog.value = false
-                            navController.navigate("welcome"){
-                                popUpTo("home/{name}/{id}"){
+                            navController.navigate("welcome") {
+                                popUpTo("home/{name}/{id}") {
                                     inclusive = true
                                 }
                             }
@@ -540,13 +572,13 @@ fun HistoricalCourse(apply: Apply){
         ){
             Column {
                 Text(text = course.cname, style = MaterialTheme.typography.headlineSmall)
-                Text(text = TeacherController().findTeacherById(course.teacher).tname)
+                Text(text = runBlocking { TeacherController().findTeacherById(course.teacher).tname } )
             }
         }
     }
 
     if (openDialog.value){
-        AlertDialog(
+        BasicAlertDialog(
             onDismissRequest = { openDialog.value = false },
             properties = DialogProperties(
                 dismissOnBackPress = true,
@@ -566,22 +598,26 @@ fun HistoricalCourse(apply: Apply){
                     Text(text = "原因", style = MaterialTheme.typography.titleLarge)
                     Text(text = apply.reason)
                     Text(text = "主讲教师意见", style = MaterialTheme.typography.titleLarge)
-                    Text(text = when(apply.isteacherpass){
-                        true -> "同意"
-                        false -> "驳回"
-                        else -> ""
-                    })
-                    if(apply.teacherreason != ""){
+                    Text(
+                        text = when (apply.isteacherpass) {
+                            true -> "同意"
+                            false -> "驳回"
+                            else -> ""
+                        }
+                    )
+                    if (apply.teacherreason != "") {
                         Text(text = "主讲教师理由", style = MaterialTheme.typography.titleLarge)
                         Text(text = apply.teacherreason)
                     }
                     Text(text = "主管教师意见", style = MaterialTheme.typography.titleLarge)
-                    Text(text = when(apply.ismanagerpass){
-                        true -> "同意"
-                        false -> "驳回"
-                        else -> ""
-                    })
-                    if(apply.managerreason != ""){
+                    Text(
+                        text = when (apply.ismanagerpass) {
+                            true -> "同意"
+                            false -> "驳回"
+                            else -> ""
+                        }
+                    )
+                    if (apply.managerreason != "") {
                         Text(text = "主讲教师理由", style = MaterialTheme.typography.titleLarge)
                         Text(text = apply.managerreason)
                     }

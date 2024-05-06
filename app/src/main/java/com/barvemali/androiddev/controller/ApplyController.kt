@@ -3,34 +3,26 @@ package com.barvemali.androiddev.controller
 import android.util.Log
 import com.barvemali.androiddev.model.entity.Apply
 import com.barvemali.androiddev.model.service.ApplyService
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class ApplyController {
     val service = ApplyService()
 
     fun getApplies(): List<Apply> = service.findApplies()
 
-    fun getMaxId(): Int{
-        val applies = service.findApplies()
-        var max = 0
-        applies.forEach{
-            if (it.id > max){
-                max = it.id
-            }
-        }
-        return max
-    }
-
     fun createApply(apply: Apply){
-        val string = "{\"id\":\"" + null +
-                "\",\"courseid\":\"" + apply.courseid +
-                "\",\"studentid\":\"" + apply.studentid.toString() +
-                "\",\"reason\":\"" + apply.reason +
-                "\",\"file\":\"" + apply.file.toString() +
-                "\",\"isteacherpass\":\"" + apply.isteacherpass.toString() +
-                "\",\"ismanagerpass\":\"" + apply.ismanagerpass.toString() +
-                "\",\"isfinish\":\"" + apply.isfinish.toString() +
-                "\",\"teacherreason\":\"" + apply.teacherreason +
-                "\",\"managerreason\":\"" + apply.managerreason + "\"}"
+//        val string = "{\"id\":\"" + null +
+//                "\",\"courseid\":\"" + apply.courseid +
+//                "\",\"studentid\":\"" + apply.studentid.toString() +
+//                "\",\"reason\":\"" + apply.reason +
+//                "\",\"file\":\"" + apply.file +
+//                "\",\"isteacherpass\":\"" + apply.isteacherpass.toString() +
+//                "\",\"ismanagerpass\":\"" + apply.ismanagerpass.toString() +
+//                "\",\"isfinish\":\"" + apply.isfinish.toString() +
+//                "\",\"teacherreason\":\"" + apply.teacherreason +
+//                "\",\"managerreason\":\"" + apply.managerreason + "\"}"
+        val string = Json.encodeToString(apply)
         service.post(string)
     }
 

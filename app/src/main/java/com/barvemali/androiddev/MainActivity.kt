@@ -26,7 +26,7 @@ import com.barvemali.androiddev.ui.WelComePage
 import com.barvemali.androiddev.ui.theme.AndroidDevTheme
 
 class MainActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.Q)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
@@ -52,11 +52,10 @@ fun GreetingPreview() {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.Q)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun AppNavigation(){
     val navController = rememberNavController()
-    var currentUser by remember { mutableStateOf(Student("name", 123, "password")) }
     NavHost(
         navController = navController,
         startDestination = "welcome"

@@ -76,32 +76,6 @@ fun LeafImage(){
     )
 }
 
-@Composable
-fun ByteImage(byteArray: ByteArray) {
-    var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
-
-    DisposableEffect(byteArray) {
-        // 在DisposableEffect中加载字节数组并将其转换为Bitmap
-        imageBitmap = byteArray.toBitmap()
-
-        onDispose {
-            // 在Composable被丢弃时释放资源
-            imageBitmap = null
-        }
-    }
-
-    // 显示图片
-    imageBitmap?.let {
-        Image(
-            bitmap = it,
-            contentDescription = null, // 可以添加图像的描述信息
-            modifier = Modifier
-                .size(200.dp, 200.dp), // 根据您的需求设置大小
-            contentScale = ContentScale.Crop
-        )
-    }
-}
-
 private fun ByteArray.toBitmap(): ImageBitmap? {
     return try {
         // 假设字节数组包含图片数据，这里使用BitmapFactory来解码字节数组为Bitmap

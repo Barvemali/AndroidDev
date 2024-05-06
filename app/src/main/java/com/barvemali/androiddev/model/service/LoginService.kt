@@ -1,6 +1,7 @@
 package com.barvemali.androiddev.model.service
 
 import android.util.Log
+import com.barvemali.androiddev.model.constant.port
 import com.barvemali.androiddev.model.entity.Student
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -15,21 +16,21 @@ import java.io.IOException
 class LoginService{
     lateinit var currentStudent: Student
 
-    suspend fun fetchStudentList(): List<Student>{
-            val url = "http://10.0.2.2:8080/student/list"
-            val request = Request.Builder()
-                .url(url)
-                .method("GET", null)
-                .build()
+    fun fetchStudentList(): List<Student>{
+        val url = "http://10.0.2.2:" + port + "/student/list"
+        val request = Request.Builder()
+            .url(url)
+            .method("GET", null)
+            .build()
 
-            OkHttpClient().newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+        OkHttpClient().newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-                val moshi = Moshi.Builder().build()
-                val parameterizedType = Types.newParameterizedType(List::class.java, Student::class.java)
-                val adapter = moshi.adapter<List<Student>>(parameterizedType)
-                return adapter.fromJson(response.body.source())!!
-            }
+            val moshi = Moshi.Builder().build()
+            val parameterizedType = Types.newParameterizedType(List::class.java, Student::class.java)
+            val adapter = moshi.adapter<List<Student>>(parameterizedType)
+            return adapter.fromJson(response.body.source())!!
+        }
     }
 
     fun loginVerify(id: String, password: String): Boolean = runBlocking{
@@ -43,7 +44,7 @@ class LoginService{
         }
         job.join()
 
-        isSuccess
+        return@runBlocking isSuccess
     }
 
     fun findStudentById(id: Int): Student {

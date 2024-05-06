@@ -24,7 +24,7 @@ class CourseController {
         return service.findCourseById(id)
     }
 
-    fun search(name: String): List<Course> {
+    fun searchByCourseName(name: String): List<Course> {
         val result: ArrayList<Course> = ArrayList()
         for (course in courses){
             if (course.cname.contains(name)){
